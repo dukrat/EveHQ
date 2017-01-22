@@ -3340,7 +3340,7 @@ Namespace Forms
                 Else
                     itemYield = _baseYield * (1 + (0.02 * CDbl(rPilot.KeySkills(KeySkill.ScrapMetalProc))))
                 End If
-                itemYield = Math.Min(itemYield, 1)
+                ' itemYield = Math.Min(itemYield, 1)
                 _matList.Clear()
                 If StaticData.TypeMaterials.ContainsKey(asset) Then
                     For Each mat As Integer In StaticData.TypeMaterials(asset).Materials.Keys
@@ -3379,8 +3379,8 @@ Namespace Forms
                     For Each mat As Integer In _matList.Keys
                         price = Math.Round(matPrices(mat), 2, MidpointRounding.AwayFromZero)
                         perfect = CLng(_matList(mat)) * batches
-                        wastage = CLng(perfect * (1 - itemYield))
-                        quant = CLng(perfect * itemYield)
+                        quant = CLng(Math.Floor(CDbl(perfect) * itemYield))
+                        wastage = perfect - quant
                         value = price * quant
                         fees = Math.Round(value * (_rTotalFees / 100), 2, MidpointRounding.AwayFromZero)
                         sale = value - fees
