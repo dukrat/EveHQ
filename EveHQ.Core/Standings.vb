@@ -176,9 +176,9 @@ Public Class Standings
                 If returnEffectiveStanding = True Then
                     Dim rawStanding As Double = sPilot.Standings(CLng(entityID)).Standing
                     If rawStanding < 0 Then
-                        Return rawStanding + ((10 - rawStanding)*(diplomacyLevel*4/100))
+                        Return rawStanding + ((10 - rawStanding) * (diplomacyLevel * 4 / 100))
                     Else
-                        Return rawStanding + ((10 - rawStanding)*(connectionsLevel*4/100))
+                        Return rawStanding + ((10 - rawStanding) * (connectionsLevel * 4 / 100))
                     End If
                 Else
                     Return sPilot.Standings(CLng(entityID)).Standing

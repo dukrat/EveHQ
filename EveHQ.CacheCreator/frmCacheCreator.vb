@@ -1345,9 +1345,15 @@ Public Class FrmCacheCreator
     Private Sub LoadNPCCorps()
 
         StaticData.NpcCorps.Clear()
-        Using evehqData As DataSet = DatabaseFunctions.GetStaticData("SELECT itemID, itemName FROM invUniqueNames WHERE groupID=2;")
+        Using evehqData As DataSet = DatabaseFunctions.GetStaticData("SELECT itemID, itemName, factionID FROM invUniqueNames LEFT OUTER JOIN crpNPCCorporations ON crpNPCCorporations.corporationID=invUniqueNames.itemID WHERE groupID=2;")
             For Each corpRow As DataRow In evehqData.Tables(0).Rows
-                StaticData.NpcCorps.Add(CInt(corpRow.Item("itemID")), CStr(corpRow.Item("itemname")))
+                Dim cp As New NPCCorp
+                cp.CorporationID = CInt(corpRow.Item("itemID"))
+                cp.CorporationName = CStr(corpRow.Item("itemName"))
+                If IsNumeric(corpRow.Item("factionID")) Then
+                    cp.FactionID = CInt(corpRow.Item("factionID"))
+                End If
+                StaticData.NpcCorps.Add(cp.CorporationID, cp)
             Next
         End Using
 

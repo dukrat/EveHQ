@@ -102,6 +102,7 @@ Namespace Forms
         Dim _stationYield As Double = 0
         Dim _stationTake As Double = 0
         Dim _stationStanding As Double = 0
+        Dim _stationFactionStanding As Double = 0
         Dim _rBrokerFee As Double = 0
         Dim _rTransTax As Double = 0
         Dim _rTotalFees As Double = 0
@@ -3226,7 +3227,7 @@ Namespace Forms
                     lblStation.Text = aLocation.StationName
                     lblCorp.Text = aLocation.CorpId.ToString
                     If StaticData.NpcCorps.ContainsKey(aLocation.CorpId) = True Then
-                        lblCorp.Text = CStr(StaticData.NpcCorps(aLocation.CorpId))
+                        lblCorp.Text = CStr(StaticData.NpcCorps(aLocation.CorpId).CorporationName)
                         lblCorp.Tag = aLocation.CorpId.ToString
                         _stationYield = aLocation.RefiningEfficiency
                         lblBaseYield.Text = (_stationYield * 100).ToString("N2")
@@ -3275,7 +3276,6 @@ Namespace Forms
             Dim quantity As Long
             Dim quant As Long
             Dim wastage As Long
-            Dim taken As Long
             Dim value As Double
             Dim fees As Double
             Dim sale As Double
@@ -3293,7 +3293,6 @@ Namespace Forms
             Dim refinePriceTotal As Double = 0
             Dim recycleResults As New SortedList(Of Integer, Long)
             Dim recycleWaste As New SortedList
-            Dim recycleTake As New SortedList
             Dim rPilot As EveHQPilot = HQ.Settings.Pilots(cboRecyclePilots.SelectedItem.ToString)
             Dim priceTask As Task(Of Dictionary(Of Integer, Double)) = DataFunctions.GetMarketPrices(From a In _recyclerAssetList.Keys Select a)
             priceTask.Wait()
@@ -3382,8 +3381,6 @@ Namespace Forms
                         perfect = CLng(_matList(mat)) * batches
                         wastage = CLng(perfect * (1 - itemYield))
                         quant = CLng(perfect * itemYield)
-                        taken = CLng(quant * (_stationTake / 100))
-                        quant = quant - taken
                         value = price * quant
                         fees = Math.Round(value * (_rTotalFees / 100), 2, MidpointRounding.AwayFromZero)
                         sale = value - fees
@@ -3414,12 +3411,6 @@ Namespace Forms
                             recycleWaste.Add(mat, wastage)
                         Else
                             recycleWaste(mat) = CDbl(recycleWaste(mat)) + wastage
-                        End If
-                        ' Save the take amounts
-                        If recycleTake.Contains(mat) = False Then
-                            recycleTake.Add(mat, taken)
-                        Else
-                            recycleTake(mat) = CDbl(recycleTake(mat)) + taken
                         End If
                     Next
                 End If
@@ -3455,13 +3446,11 @@ Namespace Forms
                 For Each mat As Integer In recycleResults.Keys
                     price = Math.Round(matPrices(mat), 2, MidpointRounding.AwayFromZero)
                     wastage = CLng(recycleWaste(mat))
-                    taken = CLng(recycleTake(mat))
                     quant = CLng(recycleResults(mat))
                     newClvItem = New Node
                     adtTotals.Nodes.Add(newClvItem)
                     newClvItem.CreateCells()
                     newClvItem.Text = StaticData.Types(mat).Name
-                    newClvItem.Cells(1).Text = taken.ToString("N0")
                     newClvItem.Cells(2).Text = wastage.ToString("N0")
                     newClvItem.Cells(3).Text = quant.ToString("N0")
                     newClvItem.Cells(4).Text = price.ToString("N2")
@@ -3477,8 +3466,10 @@ Namespace Forms
             lblBaseYield.Text = (_baseYield * 100).ToString("N2") & "%"
             If lblCorp.Tag IsNot Nothing Then
                 _stationStanding = Standings.GetStanding(rPilot.Name, lblCorp.Tag.ToString, True)
+                _stationFactionStanding = Standings.GetStanding(rPilot.Name, StaticData.NpcCorps(lblCorp.Tag.ToString.ToInt32).FactionID.ToString, True)
             Else
                 _stationStanding = 0
+                _stationFactionStanding = 0
             End If
             ' Update Standings
             If chkOverrideStandings.Checked = True Then
@@ -3492,17 +3483,17 @@ Namespace Forms
             End If
             ' Update Broker Fee
             If chkOverrideBrokerFee.Checked = False Then
-                _rBrokerFee = 1 * (1 - 0.05 * (CInt(rPilot.KeySkills(KeySkill.BrokerRelations))))
+                _rBrokerFee = 1 * (3 - 0.1 * (CInt(rPilot.KeySkills(KeySkill.BrokerRelations))) - 0.03 * _stationFactionStanding - 0.02 * _stationStanding)
             Else
                 _rBrokerFee = nudBrokerFee.Value
             End If
             ' Update Trans Tax
             If chkOverrideTax.Checked = False Then
-                _rTransTax = 1 * (1.5 - 0.15 * (CInt(rPilot.KeySkills(KeySkill.Accounting))))
+                _rTransTax = 1 * (2 - 0.2 * (CInt(rPilot.KeySkills(KeySkill.Accounting))))
             Else
                 _rTransTax = nudTax.Value
             End If
-            _rTotalFees = _rBrokerFee + _rTransTax
+            _rTotalFees = _rBrokerFee + _rTransTax + _stationTake
             lblTotalFees.Text = _rTotalFees.ToString("N2") & "%"
             Call RecalcRecycling()
         End Sub
@@ -3567,6 +3558,8 @@ Namespace Forms
                     lblStandings.Text = _stationStanding.ToString("N2")
                 End If
             End If
+            _rTotalFees = _rBrokerFee + _rTransTax + _stationTake
+            lblTotalFees.Text = _rTotalFees.ToString("N2") & "%"
             Call RecalcRecycling()
         End Sub
 
@@ -3588,29 +3581,29 @@ Namespace Forms
         Private Sub chkOverrideBrokerFee_CheckedChanged(ByVal sender As Object, ByVal e As EventArgs) Handles chkOverrideBrokerFee.CheckedChanged
             Dim rPilot As EveHQPilot = HQ.Settings.Pilots(cboRecyclePilots.SelectedItem.ToString)
             If chkOverrideBrokerFee.Checked = False Then
-                _rBrokerFee = 1 * (1 - 0.05 * (CInt(rPilot.KeySkills(KeySkill.BrokerRelations))))
+                _rBrokerFee = 1 * (3 - 0.1 * (CInt(rPilot.KeySkills(KeySkill.BrokerRelations))) - 0.03 * _stationFactionStanding - 0.02 * _stationStanding)
             Else
                 _rBrokerFee = nudBrokerFee.Value
             End If
-            _rTotalFees = _rBrokerFee + _rTransTax
+            _rTotalFees = _rBrokerFee + _rTransTax + _stationTake
             lblTotalFees.Text = _rTotalFees.ToString("N2") & "%"
             Call RecalcRecycling()
         End Sub
         Private Sub chkOverrideTax_CheckedChanged(ByVal sender As Object, ByVal e As EventArgs) Handles chkOverrideTax.CheckedChanged
             Dim rPilot As EveHQPilot = HQ.Settings.Pilots(cboRecyclePilots.SelectedItem.ToString)
             If chkOverrideTax.Checked = False Then
-                _rTransTax = 1 * (1.5 - 0.15 * (CInt(rPilot.KeySkills(KeySkill.Accounting))))
+                _rTransTax = 1 * (2 - 0.2 * (CInt(rPilot.KeySkills(KeySkill.Accounting))))
             Else
                 _rTransTax = nudTax.Value
             End If
-            _rTotalFees = _rBrokerFee + _rTransTax
+            _rTotalFees = _rBrokerFee + _rTransTax + _stationTake
             lblTotalFees.Text = _rTotalFees.ToString("N2") & "%"
             Call RecalcRecycling()
         End Sub
         Private Sub nudBrokerFee_ValueChanged(ByVal sender As Object, ByVal e As EventArgs) Handles nudBrokerFee.ValueChanged
             If chkOverrideBrokerFee.Checked = True Then
                 _rBrokerFee = nudBrokerFee.Value
-                _rTotalFees = _rBrokerFee + _rTransTax
+                _rTotalFees = _rBrokerFee + _rTransTax + _stationTake
                 lblTotalFees.Text = _rTotalFees.ToString("N2") & "%"
                 Call RecalcRecycling()
             End If
@@ -3618,7 +3611,7 @@ Namespace Forms
         Private Sub nudTax_ValueChanged(ByVal sender As Object, ByVal e As EventArgs) Handles nudTax.ValueChanged
             If chkOverrideTax.Checked = True Then
                 _rTransTax = nudTax.Value
-                _rTotalFees = _rBrokerFee + _rTransTax
+                _rTotalFees = _rBrokerFee + _rTransTax + _stationTake
                 lblTotalFees.Text = _rTotalFees.ToString("N2") & "%"
                 Call RecalcRecycling()
             End If

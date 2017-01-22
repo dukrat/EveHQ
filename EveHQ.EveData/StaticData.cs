@@ -175,7 +175,7 @@ namespace EveHQ.EveData
         /// <summary>
         ///     The NPC corps.
         /// </summary>
-        private static SortedList<int, string> npcCorps = new SortedList<int, string>(); // corpID, corpName
+        private static SortedList<int, NPCCorp> npcCorps = new SortedList<int, NPCCorp>(); // corpID, corpName
 
         /// <summary>
         ///     The regions.
@@ -422,9 +422,9 @@ namespace EveHQ.EveData
         /// <summary>
         ///     Gets the NPC corps.
         /// </summary>
-        public static SortedList<int, string> NpcCorps
+        public static SortedList<int, NPCCorp> NpcCorps
         {
-            // corpID, corpName
+            // corpID, corpName, factionID
             get { return npcCorps; }
         }
 
@@ -1154,7 +1154,7 @@ namespace EveHQ.EveData
                     var s = new FileStream(Path.Combine(coreCacheFolder, "NPCCorps.dat"), FileMode.Open, FileAccess.Read)
                     )
                 {
-                    npcCorps = Serializer.Deserialize<SortedList<int, string>>(s);
+                    npcCorps = Serializer.Deserialize<SortedList<int, NPCCorp>>(s);
                 }
 
                 Trace.TraceInformation(" *** NPC Corps Finished Loading");

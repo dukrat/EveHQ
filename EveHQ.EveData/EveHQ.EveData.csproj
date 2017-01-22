@@ -60,6 +60,7 @@
     <Compile Include="CertificateCategory.cs" />
     <Compile Include="CertificateGrade.cs" />
     <Compile Include="CertificateRecommendation.cs" />
+    <Compile Include="NPCCorp.cs" />
     <Compile Include="EffectType.cs" />
     <Compile Include="EveType.cs" />
     <Compile Include="ItemAttrib.cs" />
