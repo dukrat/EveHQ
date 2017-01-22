@@ -3358,7 +3358,7 @@ Namespace Forms
                 volume += itemInfo.Volume * quantity
                 items += CLng(quantity)
                 value = price * quantity
-                fees = Math.Round(value * (_rTotalFees / 100), 2, MidpointRounding.AwayFromZero)
+                fees = Math.Round(value * (_rTotalFees - _stationTake / 100), 2, MidpointRounding.AwayFromZero)
                 sale = value - fees
                 newClvItem.Cells(1).Text = itemInfo.MetaLevel.ToString("N0")
                 newClvItem.Cells(2).Text = quantity.ToString("N0")
